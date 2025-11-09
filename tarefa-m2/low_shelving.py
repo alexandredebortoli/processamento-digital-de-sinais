@@ -68,14 +68,13 @@ def shelving_low(fc, G, fs):
     return b, a
 
 
-b_lf_boost, a_lf_boost = shelving_low(fc=fc, G=10, fs=fs)
-b_lf_cut, a_lf_cut = shelving_low(fc=fc, G=-10, fs=fs)
-
-
 def plot_filter(b, a, fs, label):
     w, h = freqz(b, a, fs=fs)
     plt.plot(w, 20 * np.log10(abs(h)), label=label)
 
+
+b_lf_boost, a_lf_boost = shelving_low(fc=fc, G=10, fs=fs)
+b_lf_cut, a_lf_cut = shelving_low(fc=fc, G=-10, fs=fs)
 
 plt.figure(figsize=(10, 6))
 plot_filter(b_lf_boost, a_lf_boost, fs, "LF Shelving Boost")
@@ -91,5 +90,35 @@ plt.grid(True)
 plt.legend()
 plt.show()
 
-np.save("output/coeficientes_h_lf_boost.npy", b_lf_boost)
-np.save("output/coeficientes_h_lf_cut.npy", b_lf_cut)
+
+# import numpy as np
+# import matplotlib.pyplot as plt
+
+# fs = 44100
+# t = np.linspace(0, 1, fs)
+# # Example input: sine sweep (20Hz–10kHz)
+# x = np.sin(2 * np.pi * (20 * (10000 / 20) ** (t / 1)) * t)
+
+# # Get shelving filter coefficients (boost)
+# b, a = shelving_low(fc=1000, G=10, fs=fs)
+
+# from scipy.signal import lfilter
+
+
+# def apply_filter(x, b, a):
+#     """Apply the designed shelving filter to a signal array."""
+#     y = lfilter(b, a, x)
+#     return y
+
+
+# # Filter the signal
+# y = apply_filter(x, b, a)
+
+# # Plot before/after
+# plt.figure(figsize=(10, 4))
+# plt.plot(t, x, label="Input", alpha=0.7)
+# plt.plot(t, y, label="Filtered", alpha=0.7)
+# plt.title("Input vs Filtered Signal (LF Shelving Boost)")
+# plt.xlabel("Time [s]")
+# plt.legend()
+# plt.show()

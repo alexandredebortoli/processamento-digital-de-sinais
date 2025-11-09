@@ -1,13 +1,13 @@
 # 1 - Em Python projete os filtros shelving LF, Peak e Shelving HF
 # e plote suas respectivas frequências.
 
-# 1-a H(Z) = 1 + H0/2 * [1+ A(Z)]
+# 1-a H(Z) = 1 + H0/2 * [1- A(Z)]
 
 # A(Z) = (Z^(-1) + aB) / (1 + aB * Z^(-1))
 # Y(Z)/X(Z) = (Z^(-1) + aB) / (1 + aB * Z^(-1))
 # Y1[n] = aB * X[n] + X[n-1] - aB * Y[n-1]
 
-# Shelving LF para G=10dB e isso vai gerar um burst
+# Shelving HF para G=10dB e isso vai gerar um burst
 # V0 = 10^(G/20) = 10^(10/20) = 3.162
 # H0 = V0 - 1 = 3.162 - 1 = 2.162
 # fc = 1000 Hz
@@ -18,24 +18,23 @@
 
 # Y1[n] = aB * X[n] + X[n-1] - aB * Y[n-1]
 # Y1[n] = 0.0086 * X[n] + X[n-1] - 0.0086 * Y[n-1]
+# H(Z) = 1 + H0/2 * [1 - (Z^(-1) + aB) / (1 + aB * Z^(-1))]
+# H(Z) = 1 + k * [1 - (Z^(-1) + aB) / (1 + aB * Z^(-1))]
+# H(Z) = 1 + k * [[(1 + aB*Z^(-1)) - (Z^(-1) + aB)] / (1 + aB * Z^(-1))]
+# H(Z) = 1 + k * [[1 + aB*Z^(-1)) - Z^(-1) - aB] / (1 + aB * Z^(-1))]
+# H(Z) = 1 + k * [[1 -ab + (aB - 1)Z^(-1)] / (1 + aB * Z^(-1))]
+# H(Z) = 1 + [[k(1 -ab) + k(aB - 1)Z^(-1)] / (1 + aB * Z^(-1))]
+# H(Z) = [(1 + aB * Z^(-1)) + k(1 -ab) + k(aB - 1)Z^(-1)] / (1 + aB * Z^(-1))
+# H(Z) = [(1 + k(1 -ab) + aBZ^(-1) + k(aB - 1)Z^(-1)] / (1 + aB * Z^(-1))
+# H(Z) = [(1 + k(1 -ab) + [aB + k(aB - 1)]Z^(-1)] / (1 + aB * Z^(-1))
+# H(Z) = a0 + a1Z^(-1)] / (b0 + b1* Z^(-1))
 
-# H(Z) = 1 + H0/2 * [1+ (Z^(-1) + aB) / (1 + aB * Z^(-1))]
-# H(Z) = 1 + k * [1+ (Z^(-1) + aB) / (1 + aB * Z^(-1))]
-# H(Z) = 1 + k * [[(1 + aB * Z^(-1))+ (Z^(-1) + aB)] / (1 + aB * Z^(-1))]
-# H(Z) = 1 + [k(1 + aB) + [k * (aB + 1) * Z^(-1)] / (1 + aB * Z^(-1))
-# H(Z) = [(1+aB*Z^(-1)) + k(1+aB) + k*(aB+1)*Z^(-1)] / (1+aB*Z^(-1))
-# H(Z) = [k(1+aB) + (1+aB) + k*(aB+1)*Z^(-1)] / (1+aB*Z^(-1))
-# H(Z) = [1+k(1+aB)] + [aB+k(1+aB)]*Z^(-1) / (1+aB*Z^(-1))
-# H(Z) = a0 + a1*Z^(-1) / 1 + b1*Z^(-1)
-# a0 = k(1+aB) + 1
-# a1 = k(aB+1) + aB
+# a0 = 1 + k(1 -ab)
+# a1 = aB + k(aB - 1)
+# b0 = 1
 # b1 = aB
 
 # y[n] = a0*x[n] + a1*x[n-1] - b1*y[n-1]
-
-# Depois fazer um programa para executar esse filtro basicamente utilizar essa formula:
-# Y1[n] = aBX[n] + x[n-1] - aBY1[n-1]
-# Y[n] = H0/2 * [X[n] + Y1[n]] + x[n]
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -45,7 +44,7 @@ fs = 44100  # Hz
 fc = 1000  # Hz
 
 
-def shelving_low(fc, G, fs):
+def shelving_high(fc, G, fs):
     V0 = 10 ** (G / 20)
     H0 = V0 - 1
     k = H0 / 2
@@ -54,16 +53,17 @@ def shelving_low(fc, G, fs):
     if G >= 0:
         aB = (np.tan(np.pi * fc / fs) - 1) / (np.tan(np.pi * fc / fs) + 1)
     else:
-        aB = (np.tan(np.pi * fc / fs) - V0) / (np.tan(np.pi * fc / fs) + V0)
+        aB = (V0 * np.tan(np.pi * fc / fs) - 1) / (V0 * np.tan(np.pi * fc / fs) + 1)
 
     # Derived from algebraic H(z)
-    a0 = 1 + k * (1 + aB)
-    a1 = aB + k * (1 + aB)
+    a0 = 1 + k * (1 - aB)
+    a1 = aB + k * (aB - 1)
+    b0 = 1
     b1 = aB
 
-    # Numerator [a0, a1], Denominator [1, b1]
+    # Numerator [a0, a1], Denominator [b0, b1]
     b = np.array([a0, a1])
-    a = np.array([1, b1])
+    a = np.array([b0, b1])
 
     return b, a
 
@@ -73,22 +73,19 @@ def plot_filter(b, a, fs, label):
     plt.plot(w, 20 * np.log10(abs(h)), label=label)
 
 
-b_lf_boost, a_lf_boost = shelving_low(fc=fc, G=10, fs=fs)
-b_lf_cut, a_lf_cut = shelving_low(fc=fc, G=-10, fs=fs)
+b_lf_boost, a_lf_boost = shelving_high(fc=fc, G=10, fs=fs)
+b_lf_cut, a_lf_cut = shelving_high(fc=fc, G=-10, fs=fs)
 
 plt.figure(figsize=(10, 6))
-plot_filter(b_lf_boost, a_lf_boost, fs, "LF Shelving Boost")
-plot_filter(b_lf_cut, a_lf_cut, fs, "LF Shelving Cut")
+plot_filter(b_lf_boost, a_lf_boost, fs, "HF Shelving Boost")
+plot_filter(b_lf_cut, a_lf_cut, fs, "HF Shelving Cut")
 
 plt.axvline(fc, color="r", linestyle="--", label=f"Frequência de corte (fc={fc} Hz)")
 
-plt.title("Shelving LF")
+plt.title("Shelving HF")
 plt.xlabel("Frequência (Hz)")
 plt.ylabel("Ganho (dB)")
 plt.xscale("log")
 plt.grid(True)
 plt.legend()
 plt.show()
-
-np.save("output/coeficientes_h_lf_boost.npy", b_lf_boost)
-np.save("output/coeficientes_h_lf_cut.npy", b_lf_cut)
